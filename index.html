@@ -7,6 +7,7 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#000; display:flex; justify-content:center; align-items:center; height:100vh; overflow:hidden; }
+#wrap { position:relative; display:inline-block; line-height:0; }
 #c  { display:block; touch-action:none; }
 #ui { position:absolute; top:0; left:0; width:100%; height:100%; display:none;
       flex-direction:column; align-items:center; justify-content:center;
@@ -22,10 +23,45 @@ body { background:#000; display:flex; justify-content:center; align-items:center
               letter-spacing:.08em; }
 #restartBtn.show { opacity:1; }
 #restartBtn:hover { background:rgba(255,255,255,.25); }
+/* ── Control buttons ──────────────────────────────────────────────────────── */
+#ctrlBtns { display:none; }
+#ctrlBtns.visible { display:block; }
+.ctrl-btn {
+  position:absolute; bottom:14px;
+  width:70px; height:70px; border-radius:18px;
+  background:rgba(220,235,255,0.18);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,0.42);
+  box-shadow:0 4px 28px rgba(140,190,255,0.18), inset 0 1px 0 rgba(255,255,255,0.38);
+  cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none;
+  display:flex; align-items:center; justify-content:center;
+  transition:background 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.ctrl-btn:active, .ctrl-btn.pressed {
+  background:rgba(220,235,255,0.34);
+  box-shadow:0 2px 14px rgba(140,190,255,0.38), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+#btnL { left:12px; }
+#btnR { right:12px; }
 </style>
 </head>
 <body>
+<div id="wrap">
 <canvas id="c"></canvas>
+<div id="ctrlBtns">
+  <button id="btnL" class="ctrl-btn" aria-label="Move left" tabindex="-1">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 6L9 14L18 22" stroke="rgba(255,255,255,0.92)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <button id="btnR" class="ctrl-btn" aria-label="Move right" tabindex="-1">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 6L19 14L10 22" stroke="rgba(255,255,255,0.92)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+</div>
 <div id="ui">
   <p class="tagline" id="tagline">Some journeys only exist<br>in our imagination.</p>
   <button id="restartBtn" onclick="restartGame()">play again?</button>
@@ -196,6 +232,23 @@ const Input = {
       this.left=dx<-20; this.right=dx>20;
     },{passive:false});
     c.addEventListener('touchend',()=>{this.left=this.right=false;});
+
+    // ── On-screen control buttons ──────────────────────────────────────────
+    const btnL=document.getElementById('btnL');
+    const btnR=document.getElementById('btnR');
+    const press=(btn,dir,v)=>{
+      this[dir]=v;
+      if(v) btn.classList.add('pressed'); else btn.classList.remove('pressed');
+    };
+    btnL.addEventListener('touchstart',e=>{e.preventDefault();press(btnL,'left',true); },{passive:false});
+    btnL.addEventListener('touchend',  e=>{e.preventDefault();press(btnL,'left',false);},{passive:false});
+    btnL.addEventListener('touchcancel',e=>{e.preventDefault();press(btnL,'left',false);},{passive:false});
+    btnR.addEventListener('touchstart',e=>{e.preventDefault();press(btnR,'right',true); },{passive:false});
+    btnR.addEventListener('touchend',  e=>{e.preventDefault();press(btnR,'right',false);},{passive:false});
+    btnR.addEventListener('touchcancel',e=>{e.preventDefault();press(btnR,'right',false);},{passive:false});
+    btnL.addEventListener('mousedown',e=>{e.preventDefault();press(btnL,'left',true); });
+    btnR.addEventListener('mousedown',e=>{e.preventDefault();press(btnR,'right',true);});
+    document.addEventListener('mouseup',()=>{press(btnL,'left',false);press(btnR,'right',false);});
   },
   apply(player,dt){
     if(player.frozen) return;
@@ -840,6 +893,7 @@ const Ending = (()=>{
   function start(){
     if(phase!=='idle') return;
     phase='freeze'; phT=0; Audio.sfxDeath();
+    document.getElementById('ctrlBtns').classList.remove('visible');
   }
 
   function update(dt){
@@ -1064,6 +1118,7 @@ function draw(){
 function startPlaying(){
   if(G.state!=='menu') return;
   G.state='playing';
+  document.getElementById('ctrlBtns').classList.add('visible');
   Audio.init();
   Audio.startWorld(0);
 }
@@ -1107,6 +1162,7 @@ function restartGame(){
   G.alt=0; G.wi=0; G.prevWi=0; G.blend=0; G.pAccum=0;
   G.state='playing';
   G.player={x:CW/2,y:CH*.7,vx:0,health:1,equipped:{jacket:false,mask:false,suit:false},bob:0,hitFlash:0,soupGlow:0,frozen:false};
+  document.getElementById('ctrlBtns').classList.add('visible');
   Audio.startWorld(0);
 }
 
