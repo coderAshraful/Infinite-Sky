@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe Jam 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #e8e8e8;
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .grain {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: #ff5f40;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #ff5f40;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 0%, #ff5f40 50%, #ffb347 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: #666;
+    letter-spacing: 0.05em;
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 2.5rem;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #ff5f40;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #1a1a24;
+  }
+
+  /* Rules */
+  .rules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .rule {
+    background: #111118;
+    border: 1px solid #1e1e2a;
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .rule:hover {
+    border-color: #ff5f40;
+  }
+
+  .rule-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: #ff5f40;
+    opacity: 0.4;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .rule-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: #fff;
+  }
+
+  .rule-desc {
+    font-size: 0.75rem;
+    color: #777;
+    line-height: 1.5;
+  }
+
+  /* Awards */
+  .awards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .award {
+    background: #111118;
+    border: 1px solid #1e1e2a;
+    border-radius: 8px;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.3s ease;
+  }
+
+  .award:hover {
+    transform: translateY(-2px);
+    border-color: #ff5f40;
+  }
+
+  .award-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.6rem;
+    display: block;
+  }
+
+  .award-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #fff;
+    margin-bottom: 0.3rem;
+  }
+
+  .award-desc {
+    font-size: 0.7rem;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  /* Schedule */
+  .schedule {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.25rem;
+    align-items: baseline;
+  }
+
+  .time {
+    font-size: 0.75rem;
+    color: #ff5f40;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .activity {
+    font-size: 0.8rem;
+    color: #999;
+  }
+
+  .activity strong {
+    color: #e8e8e8;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #1a1a24;
+  }
+
+  .footer p {
+    font-size: 0.7rem;
+    color: #444;
+    letter-spacing: 0.1em;
+  }
+
+  .footer .big {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+    letter-spacing: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Starters */
+  .starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .starter-tag {
+    background: #1a1a24;
+    border: 1px solid #252533;
+    border-radius: 100px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.7rem;
+    color: #999;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .starter-tag:hover {
+    border-color: #ff5f40;
+    color: #e8e8e8;
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="container">
+
+  <div class="header">
+    <div class="eyebrow">PSII Learning Storm presents</div>
+    <h1>Vibe Jam<br>2026</h1>
+    <div class="subtitle">75 minutes. One page. Ship it.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">The Rules</div>
+    <div class="rules">
+      <div class="rule">
+        <div class="rule-number">01</div>
+        <div class="rule-title">One Page</div>
+        <div class="rule-desc">Your entire project lives in a single HTML file. Keep it simple.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-number">02</div>
+        <div class="rule-title">It Does Something</div>
+        <div class="rule-desc">It must respond to at least one user action — a click, a keypress, a hover, a drag. Not a poster.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-number">03</div>
+        <div class="rule-title">It Changes</div>
+        <div class="rule-desc">Something must evolve with use or over time. A counter, a mood, a state, a story that progresses.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-number">04</div>
+        <div class="rule-title">It Has a Name</div>
+        <div class="rule-desc">Your project has a title on the page. Gives it identity. Makes demo day better.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Awards — voted by you, live</div>
+    <div class="awards">
+      <div class="award">
+        <span class="award-icon">🕳️</span>
+        <div class="award-name">Most Addictive</div>
+        <div class="award-desc">The one you'd keep playing when you should be doing something else.</div>
+      </div>
+      <div class="award">
+        <span class="award-icon">🧊</span>
+        <div class="award-name">Cleanest Build</div>
+        <div class="award-desc">Simple. Polished. Everything in its right place.</div>
+      </div>
+      <div class="award">
+        <span class="award-icon">🌀</span>
+        <div class="award-name">Biggest Plot Twist</div>
+        <div class="award-desc">The moment where everyone watching goes "wait, WHAT."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Today's Schedule</div>
+    <div class="schedule">
+      <div class="time">0:00</div>
+      <div class="activity"><strong>Check-in</strong> — what worked yesterday, what broke, what surprised you</div>
+      <div class="time">0:15</div>
+      <div class="activity"><strong>Live demo</strong> — watch Marcus set up a project from scratch and build the first feature</div>
+      <div class="time">0:30</div>
+      <div class="activity"><strong>Vibe Jam begins</strong> — build your thing, ask for help, iterate</div>
+      <div class="time">1:45</div>
+      <div class="activity"><strong>Demo + awards</strong> — show what you made, vote on winners</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Need an idea? Start here</div>
+    <div class="starters">
+      <span class="starter-tag">Digital pet</span>
+      <span class="starter-tag">Quiz game</span>
+      <span class="starter-tag">Soundboard</span>
+      <span class="starter-tag">Fortune teller</span>
+      <span class="starter-tag">Idle clicker</span>
+      <span class="starter-tag">Mood tracker</span>
+      <span class="starter-tag">Choose your adventure</span>
+      <span class="starter-tag">Reaction timer</span>
+      <span class="starter-tag">Drawing tool</span>
+      <span class="starter-tag">Typing speed test</span>
+      <span class="starter-tag">Countdown to something</span>
+      <span class="starter-tag">Fake loading screen simulator</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p class="big">Build something. Ship it. Show it off.</p>
+    <p>You have 75 minutes and an AI that never sleeps.</p>
+  </div>
+
+</div>
+</body>
+</html>

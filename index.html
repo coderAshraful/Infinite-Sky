@@ -398,10 +398,9 @@ const Parallax = (()=>{
     if(!layers[wi]) return;
     ctx.globalAlpha=alpha;
     for(const L of layers[wi]){
+      // yo increases with altitude → images shift downward → background descends = climbing upward feel
       const sh=L.c.height, yo=(alt*L.s)%sh;
-      ctx.drawImage(L.c,0,-yo);
-      ctx.drawImage(L.c,0,-yo+sh);
-      if(-yo+sh<CH) ctx.drawImage(L.c,0,-yo+sh*2);
+      for(let y=yo-sh; y<CH; y+=sh) ctx.drawImage(L.c,0,y);
     }
   }
 
@@ -830,170 +829,17 @@ const HUD = (()=>{
 // ── ENDING SEQUENCE ───────────────────────────────────────────────────────────
 const Ending = (()=>{
   let phase='idle',phT=0,zoom=1,fadeA=0;
-  let childOC=null;
+  let refImg=null;
   const DUR={freeze:.8,float:1.3,zoom:3.2,reveal:1.6,fade:1.1};
 
-  function buildChild(){
-    const oc=new OffscreenCanvas(CW,CH), c=oc.getContext('2d');
-
-    // Sky gradient
-    const sky=c.createLinearGradient(0,0,0,CH);
-    sky.addColorStop(0,'#87CEEB'); sky.addColorStop(.7,'#b8e8a0'); sky.addColorStop(1,'#8fcc6e');
-    c.fillStyle=sky; c.fillRect(0,0,CW,CH);
-
-    // Sun glow top-right
-    const sun=c.createRadialGradient(CW*.85,CH*.06,0,CW*.85,CH*.06,140);
-    sun.addColorStop(0,'rgba(255,255,190,.52)'); sun.addColorStop(1,'transparent');
-    c.fillStyle=sun; c.fillRect(0,0,CW,CH);
-
-    // Soft clouds (blurred)
-    c.filter='blur(6px)'; c.fillStyle='rgba(255,255,255,.8)';
-    [[95,68,58,22],[255,52,72,19],[390,82,46,17]].forEach(([x,y,rx,ry])=>{
-      c.beginPath(); c.ellipse(x,y,rx,ry,0,0,Math.PI*2); c.fill();
-    }); c.filter='none';
-
-    // Grass field
-    const groundY=CH*.80; // y=608
-    const gr=c.createLinearGradient(0,groundY,0,CH);
-    gr.addColorStop(0,'#66BB6A'); gr.addColorStop(.25,'#4CAF50'); gr.addColorStop(1,'#2E7D32');
-    c.fillStyle=gr;
-    c.beginPath(); c.moveTo(0,groundY);
-    c.bezierCurveTo(CW*.3,groundY-18,CW*.65,groundY+10,CW,groundY-8);
-    c.lineTo(CW,CH); c.lineTo(0,CH); c.fill();
-
-    // Grass blades scattered around child
-    c.strokeStyle='#43A047'; c.lineWidth=1.5; c.lineCap='round';
-    for(let g=0;g<36;g++){
-      const gx=60+g*11+Math.sin(g*1.9)*6;
-      const gy=groundY+2;
-      c.beginPath(); c.moveTo(gx,gy);
-      c.quadraticCurveTo(gx+Math.sin(g*2.3)*5,gy-14,gx+Math.cos(g)*4,gy-20);
-      c.stroke();
-    }
-
-    // ── Child lying on back, head LEFT, feet RIGHT ──────────────────────────
-    // Reference: head center at (HX, HY), on the grass
-    const HX=165, HY=groundY-8; // head center ≈ (165, 600)
-    const SKIN='#FFCCBC', HAIR='#4E342E', SHIRT='#1565C0', PANTS='#37474F';
-
-    // Hair spread flat on grass (drawn first, behind head)
-    c.fillStyle=HAIR;
-    c.beginPath();
-    c.ellipse(HX-6,HY+4,26,10,0,0,Math.PI*2); // hair blob on ground
-    c.fill();
-    // A few strands
-    c.strokeStyle=HAIR; c.lineWidth=4; c.lineCap='round';
-    [[-18,8,-30,-2],[-10,10,-22,-8],[4,10,8,-5]].forEach(([x1,y1,x2,y2])=>{
-      c.beginPath(); c.moveTo(HX+x1,HY+y1); c.lineTo(HX+x2,HY+y2); c.stroke();
-    });
-
-    // Torso (shirt) — horizontal, slightly tilted
-    c.fillStyle=SHIRT;
-    c.beginPath(); c.ellipse(HX+80,HY+10,65,19,0.06,0,Math.PI*2); c.fill();
-
-    // Legs — two slightly bent shapes extending right
-    c.strokeStyle=PANTS; c.lineWidth=19; c.lineCap='round';
-    // Upper-left leg
-    c.beginPath(); c.moveTo(HX+135,HY+5);
-    c.quadraticCurveTo(HX+170,HY-8,HX+192,HY-30); c.stroke();
-    // Upper-right leg (overlapping slightly)
-    c.beginPath(); c.moveTo(HX+138,HY+18);
-    c.quadraticCurveTo(HX+174,HY+20,HX+198,HY+8); c.stroke();
-    // Lower legs (calves bent at knee)
-    c.lineWidth=13;
-    c.beginPath(); c.moveTo(HX+192,HY-30);
-    c.quadraticCurveTo(HX+200,HY-52,HX+190,HY-68); c.stroke(); // left lower
-    c.beginPath(); c.moveTo(HX+198,HY+8);
-    c.quadraticCurveTo(HX+210,HY+10,HX+205,HY+32); c.stroke(); // right lower
-    // Shoes
-    c.fillStyle='#263238';
-    c.beginPath(); c.ellipse(HX+188,HY-71,13,8,-.45,0,Math.PI*2); c.fill();
-    c.beginPath(); c.ellipse(HX+204,HY+35,13,8,.3,0,Math.PI*2);   c.fill();
-
-    // Right arm — resting on grass beside body
-    c.strokeStyle=SHIRT; c.lineWidth=13; c.lineCap='round';
-    c.beginPath(); c.moveTo(HX+55,HY+22);
-    c.quadraticCurveTo(HX+48,HY+48,HX+36,HY+58); c.stroke();
-    c.fillStyle=SKIN;
-    c.beginPath(); c.ellipse(HX+32,HY+60,9,7,.4,0,Math.PI*2); c.fill();
-
-    // Left arm — raised UP, pointing toward the thought bubble above
-    c.strokeStyle=SHIRT; c.lineWidth=13; c.lineCap='round';
-    c.beginPath(); c.moveTo(HX+42,HY-2);
-    c.quadraticCurveTo(HX+10,HY-55,HX-8,HY-108); c.stroke();
-    // Hand / pointing finger
-    c.fillStyle=SKIN;
-    c.beginPath(); c.ellipse(HX-10,HY-112,9,8,-.3,0,Math.PI*2); c.fill();
-    // Index finger pointing straight up
-    c.strokeStyle=SKIN; c.lineWidth=6; c.lineCap='round';
-    c.beginPath(); c.moveTo(HX-13,HY-117); c.lineTo(HX-16,HY-132); c.stroke();
-
-    // Neck
-    c.fillStyle=SKIN;
-    c.beginPath(); c.ellipse(HX+20,HY,11,13,.1,0,Math.PI*2); c.fill();
-
-    // Head — round, soft, child-like
-    c.fillStyle=SKIN;
-    c.beginPath(); c.arc(HX,HY-5,23,0,Math.PI*2); c.fill();
-
-    // Simple hair: a gentle cap of dark hair across the top
-    c.fillStyle=HAIR;
-    c.beginPath();
-    c.arc(HX,HY-5,23,Math.PI*.6,Math.PI*1.7);
-    c.quadraticCurveTo(HX-10,HY-32,HX,HY-29);
-    c.quadraticCurveTo(HX+10,HY-32,HX+18,HY-23);
-    c.fill();
-    // A small wisp of hair to the side — cute detail
-    c.strokeStyle=HAIR; c.lineWidth=2; c.lineCap='round';
-    c.beginPath(); c.moveTo(HX+14,HY-24); c.quadraticCurveTo(HX+22,HY-30,HX+18,HY-36); c.stroke();
-
-    // Rosy cheeks
-    c.fillStyle='rgba(255,150,150,.28)';
-    c.beginPath(); c.ellipse(HX-13,HY-3,8,5,0,0,Math.PI*2); c.fill();
-    c.beginPath(); c.ellipse(HX+14,HY-3,8,5,0,0,Math.PI*2); c.fill();
-
-    // Eyes — simple round dots looking upward (peaceful, not eerie)
-    // Just filled circles, no whites showing = soft closed-ish look
-    // Using small arcs (top-half visible) to suggest upward gaze gently
-    c.fillStyle='#5D4037';
-    // Left eye: small filled circle
-    c.beginPath(); c.arc(HX-8,HY-12,4.5,0,Math.PI*2); c.fill();
-    // Right eye: small filled circle
-    c.beginPath(); c.arc(HX+8,HY-12,4.5,0,Math.PI*2); c.fill();
-    // Tiny white glint on each eye
-    c.fillStyle='rgba(255,255,255,.85)';
-    c.beginPath(); c.arc(HX-7,HY-14,1.4,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(HX+9,HY-14,1.4,0,Math.PI*2); c.fill();
-    // Soft eyelashes — two small curved strokes above each eye
-    c.strokeStyle='#4E342E'; c.lineWidth=1.5; c.lineCap='round';
-    c.beginPath(); c.moveTo(HX-11,HY-15); c.quadraticCurveTo(HX-9,HY-18,HX-6,HY-16); c.stroke();
-    c.beginPath(); c.moveTo(HX+5,HY-15);  c.quadraticCurveTo(HX+8,HY-18,HX+11,HY-15); c.stroke();
-
-    // Tiny button nose
-    c.fillStyle='rgba(200,120,100,.35)';
-    c.beginPath(); c.ellipse(HX,HY-4,3,2,0,0,Math.PI*2); c.fill();
-
-    // Small happy smile — gentle upward curve
-    c.strokeStyle='#c07060'; c.lineWidth=2; c.lineCap='round';
-    c.beginPath(); c.arc(HX,HY+2,6,.25,Math.PI-.25); c.stroke();
-
-    // Small flowers in grass for atmosphere
-    [[80,groundY+5],[310,groundY+8],[420,groundY+4],[350,groundY+12]].forEach(([fx,fy])=>{
-      c.fillStyle='#FFEB3B';
-      c.beginPath(); c.arc(fx,fy,4,0,Math.PI*2); c.fill();
-      c.fillStyle='rgba(255,255,255,.8)';
-      for(let p=0;p<5;p++){
-        const pa=(p/5)*Math.PI*2;
-        c.beginPath(); c.ellipse(fx+Math.cos(pa)*7,fy+Math.sin(pa)*7,4,2.5,pa,0,Math.PI*2); c.fill();
-      }
-    });
-
-    return oc;
+  function loadRef(){
+    refImg=new Image();
+    refImg.src='Gemini_Generated_Image_u1lsunu1lsunu1ls.png';
   }
 
   function start(){
     if(phase!=='idle') return;
-    childOC=buildChild(); phase='freeze'; phT=0; Audio.sfxDeath();
+    phase='freeze'; phT=0; Audio.sfxDeath();
   }
 
   function update(dt){
@@ -1013,70 +859,52 @@ const Ending = (()=>{
     if(phase==='idle'||phase==='freeze') return;
 
     if(phase==='zoom'||phase==='reveal'){
-      // Child scene as full background
-      ctx.drawImage(childOC,0,0);
+      // Reference image is the full background — boy, grass, sky, and bubble trail all from image
+      if(refImg && refImg.complete && refImg.naturalWidth>0){
+        ctx.drawImage(refImg,0,0,CW,CH);
+      } else {
+        // Fallback if image not loaded yet
+        ctx.fillStyle='#b8dca8'; ctx.fillRect(0,0,CW,CH);
+      }
 
-      // Thought bubble target: top-center of canvas
-      const S_FINAL=0.52;
-      const TARGET_X=(CW-CW*S_FINAL)/2; // =115 — centered
-      const TARGET_Y=22;
-      // How far through the transition are we? Derive from zoom.
-      const prog=clamp((1-zoom)/(1-S_FINAL),0,1);
-      const bx=lerp(0,TARGET_X,prog);
-      const by=lerp(0,TARGET_Y,prog);
-      const s=zoom;
-      const bw=CW*s, bh=CH*s;
-      const br=18*s; // corner radius of thought bubble frame
+      // Final oval position matched to the bubble in the reference image
+      // Reference bubble: centered horizontally, occupies top ~65% of image height
+      const OVAL_CX = CW * 0.50;   // 240 — centered
+      const OVAL_CY = CH * 0.345;  // 262 — oval vertical center
+      const OVAL_RX = CW * 0.375;  // 180 — horizontal radius
+      const OVAL_RY = CH * 0.315;  // 240 — vertical radius
 
-      // Clip game to rounded rect so it looks like a bubble, not a plain rectangle
+      // prog: 0 when zoom starts (full screen), 1 when fully transitioned
+      const prog = clamp((1-zoom)/(1-0.52),0,1);
+
+      // Interpolate from full-screen ellipse → reference-image oval
+      const ecx = OVAL_CX;
+      const ecy = lerp(CH*0.5, OVAL_CY, prog);
+      const erx = lerp(CW*0.5, OVAL_RX, prog);
+      const ery = lerp(CH*0.5, OVAL_RY, prog);
+
+      // Game buffer fills the oval's bounding box
+      const bx=ecx-erx, by=ecy-ery, bw=erx*2, bh=ery*2;
+
+      // Clip game world inside the oval
       ctx.save();
       ctx.beginPath();
-      ctx.moveTo(bx+br,by);
-      ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
-      ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
-      ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
-      ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br);
-      ctx.closePath();
+      ctx.ellipse(ecx,ecy,erx,ery,0,0,Math.PI*2);
       ctx.clip();
-      ctx.translate(bx,by); ctx.scale(s,s);
+      ctx.translate(bx,by);
+      ctx.scale(bw/CW, bh/CH);
       ctx.drawImage(buf,0,0);
       ctx.restore();
 
-      // Thought bubble border (glowing cloud outline)
+      // Thin glowing ring to blend live game with image bubble border
       ctx.save();
-      ctx.strokeStyle='rgba(255,255,255,.88)'; ctx.lineWidth=3.5;
-      ctx.shadowBlur=18; ctx.shadowColor='rgba(255,255,255,.65)';
+      ctx.strokeStyle='rgba(255,255,255,.75)';
+      ctx.lineWidth=3;
+      ctx.shadowBlur=14; ctx.shadowColor='rgba(255,255,255,.55)';
       ctx.beginPath();
-      ctx.moveTo(bx+br,by);
-      ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
-      ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
-      ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
-      ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br);
-      ctx.closePath();
+      ctx.ellipse(ecx,ecy,erx,ery,0,0,Math.PI*2);
       ctx.stroke();
       ctx.shadowBlur=0; ctx.restore();
-
-      // Thought bubble trail — 4 circles from bubble bottom to child's pointing finger
-      // Child head ≈ (165, groundY-8) where groundY=CH*0.80≈608, so head≈(165,600)
-      // Child pointing finger ≈ (165-16, 600-132) ≈ (149, 468)
-      const trailAlpha=prog; // fades in as zoom progresses
-      const bubbleCenterX=bx+bw/2;
-      const bubbleBottomY=by+bh;
-      const fingerX=149, fingerY=468;
-      // 4 circles: large near bubble, tiny near finger — y interpolates between them
-      const trail=[.18,.38,.60,.82].map((t,i)=>({
-        x:lerp(bubbleCenterX,fingerX,t),
-        y:lerp(bubbleBottomY,fingerY,t),
-        r:lerp(13,3,t),
-      }));
-      ctx.save();
-      ctx.globalAlpha=trailAlpha*.9;
-      ctx.shadowBlur=8; ctx.shadowColor='rgba(255,255,255,.5)';
-      trail.forEach(({x,y,r})=>{
-        ctx.fillStyle='rgba(255,255,255,.82)';
-        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-      });
-      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
     }
 
     if(phase==='fade'||phase==='text'){
@@ -1104,7 +932,7 @@ const Ending = (()=>{
   function done(){ return phase==='text'; }
   function frozen(){ return phase==='freeze'||phase==='float'||phase==='zoom'||phase==='reveal'||phase==='fade'||phase==='text'; }
 
-  return { start, update, drawOverlay, reset, active, done, frozen };
+  return { loadRef, start, update, drawOverlay, reset, active, done, frozen };
 })();
 
 // ── GAME STATE ────────────────────────────────────────────────────────────────
@@ -1262,6 +1090,7 @@ function initGame(){
 
   Parallax.init();
   Input.init();
+  Ending.loadRef();
 
   canvas.addEventListener('click',startPlaying,{once:true});
   canvas.addEventListener('touchstart',startPlaying,{once:true,passive:true});
