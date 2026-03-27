@@ -74,11 +74,11 @@ const CW = 480, CH = 760;
 
 // ── WORLD CONFIGS ────────────────────────────────────────────────────────────
 const WORLDS = [
-  { name:'Grassland', sky:['#87CEEB','#c4f09a'], drain:.016, items:['soup','medicine','backpack'],                    music:{base:220,mode:'major',bpm:88} },
-  { name:'Mountains', sky:['#7BA7BC','#C5D8E8'], drain:.026, items:['soup','medicine','jacket','backpack','beanie','gloves'], music:{base:196,mode:'minor',bpm:74} },
-  { name:'Clouds',    sky:['#B0BEC5','#ECEFF1'], drain:.038, items:['soup','medicine','jacket','gloves'],            music:{base:174,mode:'minor',bpm:64} },
-  { name:'Atmosphere',sky:['#4A0E8F','#C2185B'], drain:.052, items:['soup','medicine','mask','goggles'],             music:{base:130,mode:'dim',  bpm:54} },
-  { name:'Space',     sky:['#000010','#050528'], drain:.065, items:['soup','medicine','suit','goggles'],             music:{base:98, mode:'chrom',bpm:44} },
+  { name:'Grassland', sky:['#87CEEB','#c4f09a'], drain:.016, items:['soup','medicine','backpack','apple','banana','berries','shoes'],                    music:{base:220,mode:'major',bpm:88} },
+  { name:'Mountains', sky:['#7BA7BC','#C5D8E8'], drain:.026, items:['soup','medicine','jacket','backpack','beanie','gloves','apple','orange','berries','shoes'], music:{base:196,mode:'minor',bpm:74} },
+  { name:'Clouds',    sky:['#B0BEC5','#ECEFF1'], drain:.038, items:['soup','medicine','jacket','gloves','banana','orange','berries'],            music:{base:174,mode:'minor',bpm:64} },
+  { name:'Atmosphere',sky:['#4A0E8F','#C2185B'], drain:.052, items:['soup','medicine','mask','goggles','berries'],             music:{base:130,mode:'dim',  bpm:54} },
+  { name:'Space',     sky:['#000010','#050528'], drain:.065, items:['soup','medicine','suit','goggles','berries'],             music:{base:98, mode:'chrom',bpm:44} },
 ];
 const SCALES = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10], dim:[0,2,3,5,6,8,9], chrom:[0,1,2,3,4,5,6,7,8,9,10,11] };
 const WORLD_LEN = 3000, BLEND_ZONE = 500;
@@ -157,6 +157,8 @@ const Audio = (()=>{
 
   function tick(){
     if(!inited||!ac) return;
+    // Prevent catch-up burst after tab switch / audio context resume
+    if(musicNext<ac.currentTime) musicNext=ac.currentTime;
     while(musicNext<ac.currentTime+.22){
       const n=musicNotes[Math.floor(Math.random()*musicNotes.length)];
       const g=ac.createGain();
@@ -239,8 +241,29 @@ const Audio = (()=>{
     setTimeout(()=>note(800,.09,.20,'sawtooth'),105);
   }
   function sfxMedicine(){
-    [440,392,330,262].forEach((f,i)=>setTimeout(()=>note(f,.12,.18,'sawtooth'),i*68));
-    setTimeout(()=>{ note(330,.1,.14,'triangle'); setTimeout(()=>note(523,.22,.18,'triangle'),130); },460);
+    // Ascending cheerful: C4→E4→G4→C5
+    [262,330,392,523].forEach((f,i)=>setTimeout(()=>note(f,.14,.20,'triangle'),i*70));
+    setTimeout(()=>{ note(880,.08,.14,'sine'); setTimeout(()=>note(1047,.18,.16,'triangle'),90); },360);
+  }
+  function sfxApple(){
+    noise(.04,4000,12,.22); setTimeout(()=>noise(.02,2800,8,.14),18);
+    setTimeout(()=>note(660,.03,.10,'square'),10);
+  }
+  function sfxBanana(){
+    [330,440,523,659].forEach((f,i)=>setTimeout(()=>note(f,.18,.22,'triangle'),i*65));
+  }
+  function sfxOrange(){
+    note(880,.12,.26,'sine'); setTimeout(()=>note(1320,.08,.16,'sine'),15);
+  }
+  function sfxBerries(){
+    [[659,0,.14],[784,120,.12],[1047,230,.10]].forEach(([f,d,v])=>setTimeout(()=>note(f,.22,v,'sine'),d));
+  }
+  function sfxShoes(){
+    noise(.03,1800,20,.15); setTimeout(()=>noise(.03,1800,20,.15),150);
+  }
+  function sfxUmbrella(){
+    noise(.12,300,3,.18);
+    for(let i=0;i<5;i++) setTimeout(()=>noise(.03,2000,15,.06),80+i*40);
   }
 
   // ── Weather SFX ─────────────────────────────────────────────────────────────
@@ -311,6 +334,7 @@ const Audio = (()=>{
   return { init, startWorld, tick, fadeMusic,
            sfxCollect, sfxEquip, sfxHit, sfxLightning, sfxDeath,
            sfxBackpack, sfxBeanie, sfxGloves, sfxGoggles, sfxMedicine,
+           sfxApple, sfxBanana, sfxOrange, sfxBerries, sfxShoes, sfxUmbrella,
            sfxRainDrop, sfxWindGust, sfxThunder, sfxAtmoWhoosh,
            sfxTransitionSting };
 })();
@@ -382,7 +406,9 @@ const Particles = (()=>{
   function hitBurst(x,y){ burst(x,y,'#FF5252',7); }
   function collectBurst(x,y,type){
     const map={soup:'#FF9800',medicine:'#EF9A9A',jacket:'#8D6E63',mask:'#81C784',suit:'#80DEEA',
-               backpack:'#A1887F',beanie:'#EF5350',gloves:'#64B5F6',goggles:'#FFD54F'};
+               backpack:'#CC2200',beanie:'#EF5350',gloves:'#64B5F6',goggles:'#FFD54F',
+               apple:'#FF4444',banana:'#FFE135',orange:'#FF8C00',berries:'#6B2FA0',
+               shoes:'#FF6B35',umbrella:'#64B4FF'};
     burst(x,y,map[type]||'#FFD700',13);
   }
 
@@ -461,7 +487,7 @@ const Particles = (()=>{
   }
 
   function clear(){ pool.forEach(p=>p.active=false); }
-  return { worldSpawn, hitBurst, collectBurst, update, draw, clear };
+  return { worldSpawn, hitBurst, collectBurst, spawn, update, draw, clear };
 })();
 
 // ── PARALLAX BACKGROUNDS ─────────────────────────────────────────────────────
@@ -501,10 +527,12 @@ const Parallax = (()=>{
 const Weather = (()=>{
   let lightningTimer=5+Math.random()*3, lightningFlash=0, lightningBolt=null;
   let soundTimer=0;
-  let rainOffsets=Array.from({length:45},(_,i)=>({x:i*(CW/45),y:Math.random()*CH}));
+  let rainOffsets=Array.from({length:80},(_,i)=>({x:i*(CW/80)*1.2,y:Math.random()*CH}));
+  let rainActive=false, rainTimer=12+Math.random()*8, rainDuration=0, umbrellaSpawned=false;
 
   function reset(){
     lightningTimer=5+Math.random()*3; lightningFlash=0; lightningBolt=null; soundTimer=0;
+    rainActive=false; rainTimer=12+Math.random()*8; rainDuration=0; umbrellaSpawned=false;
   }
 
   function makeBolt(){
@@ -536,14 +564,37 @@ const Weather = (()=>{
     if(wi===0){
       const spd=280*dt;
       for(const r of rainOffsets){ r.x+=spd*.4; r.y+=spd; if(r.y>CH){ r.y-=CH; r.x=(r.x+17)%CW; } }
+      // Rain event cycle
+      if(!rainActive){
+        rainTimer-=dt;
+        if(rainTimer<=0){
+          rainActive=true; rainDuration=10+Math.random()*5; umbrellaSpawned=false;
+          if(!umbrellaSpawned){ Collectibles.spawnSpecific('umbrella',CW/2,20); umbrellaSpawned=true; }
+        }
+      } else {
+        rainDuration-=dt;
+        if(!G.player.equipped.umbrella) G.player.health=Math.max(0,G.player.health-0.025*dt);
+        if(rainDuration<=0){
+          rainActive=false; rainTimer=30+Math.random()*30;
+          G.player.equipped.umbrella=false;
+          Collectibles.clearType('umbrella');
+        }
+      }
     }
   }
 
   function draw(ctx,wi){
     if(wi===0){ // Grassland: diagonal rain
-      ctx.save(); ctx.strokeStyle='rgba(170,205,255,0.22)'; ctx.lineWidth=1;
+      ctx.save();
+      // Dark wet overlay always present, stronger during event
+      if(rainActive){
+        ctx.fillStyle='rgba(30,50,90,0.22)'; ctx.fillRect(0,0,CW,CH);
+      }
+      const rainOpacity = rainActive ? 0.60 : 0.38;
+      const rainWidth   = rainActive ? 2   : 1.5;
+      ctx.strokeStyle=`rgba(160,200,255,${rainOpacity})`; ctx.lineWidth=rainWidth;
       for(const r of rainOffsets){
-        ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(r.x+7,r.y+16); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(r.x+10,r.y+35); ctx.stroke();
       }
       ctx.restore();
     }
@@ -599,16 +650,32 @@ const Hazards = (()=>{
   let accum=0;
   const RATES=[.75,.6,.38,.52,.5];
 
+  function getAvailableTypes(wi){
+    const tier=Math.min(2,Math.floor(G.alt/3000));
+    const prog=[
+      [['bee'],['bee','boulder'],['bee','boulder','wind']],
+      [['boulder'],['boulder','wind'],['boulder','wind','lightning']],
+      [['lightning'],['lightning','wind'],['lightning','wind','bee']],
+      [['wind'],['wind','meteor'],['wind','meteor','lightning']],
+      [['meteor'],['meteor','lightning'],['meteor','lightning','bee']],
+    ];
+    return prog[wi][tier];
+  }
+
   function spawn(wi){
-    const types=['bee','boulder','lightning','wind','meteor'];
-    const type=types[wi], h={type,dead:false,t:0,ph:0,x:0,y:0,vx:0,vy:0};
+    const speedMult=1+Math.floor(G.alt/2000)*0.10;
+    const available=getAvailableTypes(wi);
+    const type=available[Math.floor(Math.random()*available.length)];
+    const h={type,dead:false,t:0,ph:0,x:0,y:0,vx:0,vy:0};
     switch(type){
       case 'bee':
         h.dir=Math.random()<.5?1:-1; h.x=h.dir<0?CW+22:-22;
-        h.y=G.player.y-90+Math.random()*180; h.vx=-h.dir*185; h.vy=(Math.random()-.5)*55;
+        h.y=G.player.y-90+Math.random()*180;
+        h.vx=-h.dir*185*speedMult; h.vy=(Math.random()-.5)*55*speedMult;
         h.sz=12; h.dmg=.12; break;
       case 'boulder':
-        h.x=30+Math.random()*(CW-60); h.y=-28; h.vy=195; h.vx=(Math.random()-.5)*55;
+        h.x=30+Math.random()*(CW-60); h.y=-28;
+        h.vy=195*speedMult; h.vx=(Math.random()-.5)*55*speedMult;
         h.sz=16+Math.random()*10; h.dmg=.16; h.rot=0; break;
       case 'lightning':
         h.x=40+Math.random()*(CW-80); h.state='warn'; h.warnT=.7; h.strikeT=.14;
@@ -617,8 +684,8 @@ const Hazards = (()=>{
         h.dir=Math.random()<.5?1:-1; h.dur=.85; h.dmg=0; break;
       case 'meteor':
         h.x=Math.random()*CW; h.y=-28;
-        h.vx=(Math.random()<.5?1:-1)*310*Math.cos(35*Math.PI/180);
-        h.vy=310*Math.sin(35*Math.PI/180);
+        h.vx=(Math.random()<.5?1:-1)*310*speedMult*Math.cos(35*Math.PI/180);
+        h.vy=310*speedMult*Math.sin(35*Math.PI/180);
         h.sz=15; h.dmg=.20; break;
     }
     active.push(h);
@@ -626,7 +693,8 @@ const Hazards = (()=>{
 
   function update(dt,wi){
     accum+=dt;
-    const iv=1/RATES[wi];
+    const altMult=1+Math.floor(G.alt/1000)*0.10;
+    const iv=1/(RATES[wi]*altMult);
     while(accum>iv){ accum-=iv; spawn(wi); }
     for(let i=active.length-1;i>=0;i--){
       const h=active[i]; h.t+=dt; h.ph+=dt;
@@ -653,8 +721,10 @@ const Hazards = (()=>{
       const hx=h.x, hy=h.type==='lightning'?player.y:h.y;
       const d=Math.hypot(hx-player.x,hy-player.y);
       if(d<(h.sz||12)+15){
-        // Gloves reduce cold damage (worlds 0-2), goggles reduce wind/atmo damage (worlds 3-4)
-        const dmgMult=(player.equipped.gloves&&G.wi<=2)||(player.equipped.goggles&&G.wi>=3)?0.5:1;
+        // Damage reduction from equipment
+        let dmgMult=1;
+        if((player.equipped.gloves&&G.wi<=2)||(player.equipped.goggles&&G.wi>=3)) dmgMult*=0.5;
+        if(player.equipped.shoes&&(h.type==='bee'||h.type==='boulder')) dmgMult*=0.6;
         player.health=Math.max(0,player.health-h.dmg*dmgMult);
         player.hitFlash=.3; player.shakeT=0.4; player.reaction={type:'hit',t:0.35};
         Audio.sfxHit(); Particles.hitBurst(player.x,player.y);
@@ -767,7 +837,19 @@ const Collectibles = (()=>{
       player.soupGlow=1.6; player.reaction={type:'soup',t:1.5}; Audio.sfxCollect();
     } else if(c.type==='medicine'){
       player.health=Math.min(1,player.health+.13);
-      player.reaction={type:'medicine_bad',t:1.0}; Audio.sfxMedicine();
+      player.reaction={type:'medicine_good',t:0.8}; Audio.sfxMedicine();
+    } else if(['apple','banana','orange','berries'].includes(c.type)){
+      const gain={apple:.15,banana:.20,orange:.18,berries:.25};
+      player.health=Math.min(1,player.health+gain[c.type]);
+      player.reaction={type:c.type,t:0.9};
+      player.lastFoodType=c.type; player.lastFoodTimer=2;
+      const n=c.type[0].toUpperCase()+c.type.slice(1);
+      Audio['sfx'+n]();
+      if(c.type==='berries') Particles.spawn({type:'burst',x:player.x,y:player.y-28,vx:0,vy:-45,life:.8,maxLife:.8,sz:5,color:'#FF69B4',alpha:1});
+    } else if(c.type==='shoes'){
+      player.equipped.shoes=true; player.reaction={type:'shoes',t:0.8}; Audio.sfxShoes();
+    } else if(c.type==='umbrella'){
+      player.equipped.umbrella=true; player.reaction={type:'umbrella',t:0.7}; Audio.sfxUmbrella();
     } else if(c.type==='backpack'){
       player.equipped.backpack=true; player.backpackTimer=15;
       player.reaction={type:'backpack',t:0.7}; Audio.sfxBackpack();
@@ -798,7 +880,9 @@ const Collectibles = (()=>{
     // glow ring
     const gc=ctx.createRadialGradient(0,0,0,0,0,26);
     const gm={soup:'rgba(255,152,0,.38)',medicine:'rgba(244,67,54,.38)',jacket:'rgba(121,85,72,.38)',mask:'rgba(76,175,80,.38)',suit:'rgba(0,229,255,.38)',
-              backpack:'rgba(161,136,127,.38)',beanie:'rgba(239,83,80,.38)',gloves:'rgba(100,181,246,.38)',goggles:'rgba(255,213,79,.38)'};
+              backpack:'rgba(204,34,0,.38)',beanie:'rgba(239,83,80,.38)',gloves:'rgba(100,181,246,.38)',goggles:'rgba(255,213,79,.38)',
+              apple:'rgba(255,68,68,.35)',banana:'rgba(255,225,53,.35)',orange:'rgba(255,140,0,.35)',berries:'rgba(107,47,160,.35)',
+              shoes:'rgba(255,107,53,.38)',umbrella:'rgba(100,180,255,.35)'};
     gc.addColorStop(0,gm[type]); gc.addColorStop(1,'transparent');
     ctx.fillStyle=gc; ctx.beginPath(); ctx.arc(0,0,26,0,Math.PI*2); ctx.fill();
 
@@ -840,14 +924,14 @@ const Collectibles = (()=>{
       ctx.fillStyle='rgba(150,240,255,.7)'; ctx.beginPath(); ctx.arc(-2,-2,4,0,Math.PI*2); ctx.fill();
     } else if(type==='backpack'){
       // Main body
-      ctx.fillStyle='#6D4C41'; roundRect(ctx,-10,-12,20,22,4); ctx.fill();
-      ctx.fillStyle='#5D4037'; roundRect(ctx,-7,-9,14,16,3); ctx.fill();
+      ctx.fillStyle='#CC2200'; roundRect(ctx,-10,-12,20,22,4); ctx.fill();
+      ctx.fillStyle='#991100'; roundRect(ctx,-7,-9,14,16,3); ctx.fill();
       // Straps
-      ctx.strokeStyle='#795548'; ctx.lineWidth=3; ctx.lineCap='round';
+      ctx.strokeStyle='#771100'; ctx.lineWidth=3; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(-6,-12); ctx.quadraticCurveTo(-10,-16,-8,-19); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(6,-12);  ctx.quadraticCurveTo(10,-16,8,-19);  ctx.stroke();
       // Front pocket
-      ctx.strokeStyle='#4E342E'; ctx.lineWidth=1.5;
+      ctx.strokeStyle='#881100'; ctx.lineWidth=1.5;
       roundRect(ctx,-6,0,12,8,2); ctx.stroke();
     } else if(type==='beanie'){
       // Dome
@@ -889,11 +973,86 @@ const Collectibles = (()=>{
       ctx.fillStyle='rgba(255,255,255,.5)';
       ctx.beginPath(); ctx.ellipse(-10,-2,2.5,1.5,-.4,0,Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(6,-2,2.5,1.5,-.4,0,Math.PI*2); ctx.fill();
+    } else if(type==='apple'){
+      ctx.fillStyle='#DD2222';
+      ctx.beginPath(); ctx.arc(0,3,13,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#BB1111';
+      ctx.beginPath(); ctx.arc(3,5,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.35)';
+      ctx.beginPath(); ctx.ellipse(-4,-1,4,3,-.4,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#5D4037'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0,-10); ctx.quadraticCurveTo(4,-16,2,-19); ctx.stroke();
+      ctx.fillStyle='#388E3C';
+      ctx.beginPath(); ctx.moveTo(2,-16); ctx.bezierCurveTo(8,-20,10,-14,4,-13); ctx.fill();
+    } else if(type==='banana'){
+      ctx.fillStyle='#FFE135';
+      ctx.beginPath();
+      ctx.moveTo(-12,8);
+      ctx.bezierCurveTo(-16,-4,-10,-18,4,-16);
+      ctx.bezierCurveTo(14,-14,16,-4,12,4);
+      ctx.bezierCurveTo(10,8,6,10,2,10);
+      ctx.bezierCurveTo(-2,10,-8,12,-12,8);
+      ctx.fill();
+      ctx.strokeStyle='#F9A825'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(-12,8); ctx.bezierCurveTo(-16,-4,-10,-18,4,-16); ctx.stroke();
+    } else if(type==='orange'){
+      ctx.fillStyle='#FF7700';
+      ctx.beginPath(); ctx.arc(0,2,13,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#E65C00';
+      ctx.beginPath(); ctx.arc(4,5,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.3)';
+      ctx.beginPath(); ctx.ellipse(-4,-2,4,3,-.4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#CC5500';
+      ctx.beginPath(); ctx.arc(0,2,2.5,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#5D4037'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0,-11); ctx.lineTo(0,-14); ctx.stroke();
+    } else if(type==='berries'){
+      const bc='#7B1FA2';
+      [[-6,4,7],[5,5,7],[0,-5,7]].forEach(([bx,by,br])=>{
+        ctx.fillStyle=bc;
+        ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.25)';
+        ctx.beginPath(); ctx.ellipse(bx-2,by-2,2.5,2,-.5,0,Math.PI*2); ctx.fill();
+      });
+      ctx.strokeStyle='#4E342E'; ctx.lineWidth=1.2; ctx.lineCap='round';
+      [[-6,-3],[5,-2],[0,-12]].forEach(([sx,sy])=>{
+        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(0,-13,0,-16); ctx.stroke();
+      });
+    } else if(type==='shoes'){
+      ctx.fillStyle='#FF6B35';
+      ctx.beginPath(); ctx.ellipse(-9,4,10,5,-.2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#FFFFFF';
+      ctx.beginPath(); ctx.ellipse(-9,3,7,3,-.2,0,Math.PI); ctx.fill();
+      ctx.fillStyle='#FF6B35';
+      ctx.beginPath(); ctx.ellipse(9,4,10,5,.2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#FFFFFF';
+      ctx.beginPath(); ctx.ellipse(9,3,7,3,.2,0,Math.PI); ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-14,2); ctx.lineTo(-4,2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4,2); ctx.lineTo(14,2); ctx.stroke();
+    } else if(type==='umbrella'){
+      ctx.strokeStyle='#8D6E63'; ctx.lineWidth=2.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(0,-8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(-3,-8,3,0,Math.PI); ctx.stroke();
+      ctx.fillStyle='rgba(100,180,255,0.75)';
+      ctx.beginPath(); ctx.arc(0,-10,16,Math.PI,0); ctx.fill();
+      ctx.strokeStyle='rgba(80,140,220,0.9)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(0,-10,16,Math.PI,0); ctx.stroke();
+      ctx.strokeStyle='rgba(60,100,200,0.45)'; ctx.lineWidth=1;
+      for(let i=0;i<4;i++){
+        const a=Math.PI+(i/3)*Math.PI;
+        ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(Math.cos(a)*16,-10+Math.sin(a)*16); ctx.stroke();
+      }
     }
   }
 
+  function spawnSpecific(type,x,y){
+    active.push({type,x,baseY:y,y,t:Math.random()*Math.PI*2,sz:20});
+  }
+
   function clear(){ active.length=0; acc=0; }
-  return { update, collide, draw, clear };
+  function clearType(type){ for(let i=active.length-1;i>=0;i--){ if(active[i].type===type) active.splice(i,1); } }
+  return { update, collide, draw, clear, drawItem, spawnSpecific, clearType };
 })();
 
 // ── CHARACTER RENDERER ────────────────────────────────────────────────────────
@@ -902,7 +1061,10 @@ function drawCharacter(ctx,p){
   const rct=p.reaction, rt=rct.t;
   // Backpack bounce: exaggerate bob during reaction
   const bobAmp = (rct.type==='backpack'&&rt>0) ? 8 : 4;
-  ctx.translate(p.x, p.y+Math.sin(p.bob)*bobAmp);
+  // Food reaction modifiers
+  const bodySwayX = (rct.type==='banana'&&rt>0) ? Math.sin(rt*12)*8 : 0;
+  const shiverX   = (rct.type==='orange'&&rt>0) ? Math.sin(rt*30)*2 : 0;
+  ctx.translate(p.x + bodySwayX + shiverX, p.y+Math.sin(p.bob)*bobAmp);
 
   if(p.equipped.suit){
     const sg=ctx.createRadialGradient(0,0,8,0,0,38);
@@ -914,17 +1076,15 @@ function drawCharacter(ctx,p){
   sh.addColorStop(0,'rgba(0,0,0,.16)'); sh.addColorStop(1,'transparent');
   ctx.fillStyle=sh; ctx.beginPath(); ctx.ellipse(0,23,15,7,0,0,Math.PI*2); ctx.fill();
 
-  // Backpack (behind torso)
+  // Backpack (behind torso — body only, straps drawn later over front)
   if(p.equipped.backpack){
-    ctx.fillStyle='#6D4C41'; ctx.beginPath(); ctx.roundRect(-20,-10,13,22,3); ctx.fill();
-    ctx.fillStyle='#5D4037'; ctx.beginPath(); ctx.roundRect(-18,-7,9,15,2); ctx.fill();
-    ctx.strokeStyle='#795548'; ctx.lineWidth=2.5; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(-14,-10); ctx.quadraticCurveTo(-18,-14,-16,-17); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-13,10);  ctx.quadraticCurveTo(-18,10,-16,14);   ctx.stroke();
+    ctx.fillStyle='#CC2200'; ctx.beginPath(); ctx.roundRect(-20,-10,13,22,3); ctx.fill();
+    ctx.fillStyle='#991100'; ctx.beginPath(); ctx.roundRect(-18,-7,9,15,2); ctx.fill();
   }
 
   // Legs
-  const ls=Math.sin(p.bob)*6;
+  const shoeTap=(rct.type==='shoes'&&rt>0)?Math.sin(rt*40)*8:0;
+  const ls=Math.sin(p.bob)*6+shoeTap;
   ctx.strokeStyle=p.equipped.suit?'#ECEFF1':'#3949AB'; ctx.lineWidth=5; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(-5,8); ctx.quadraticCurveTo(-8,16,-6+ls,24); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(5,8);  ctx.quadraticCurveTo(8,16,6-ls,24);   ctx.stroke();
@@ -950,29 +1110,58 @@ function drawCharacter(ctx,p){
     ctx.beginPath(); ctx.moveTo(-4,-11); ctx.lineTo(0,-8); ctx.lineTo(4,-11); ctx.fill();
   }
 
+  // Backpack chest straps — drawn over torso/jacket so visible on front
+  if(p.equipped.backpack){
+    ctx.strokeStyle='#991100'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-10,-12); ctx.bezierCurveTo(-6,-4,2,2,2,8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10,-12);  ctx.bezierCurveTo(6,-4,-2,2,-2,8); ctx.stroke();
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(4,0); ctx.stroke();
+  }
+
+  // Shoes (drawn at feet before arms)
+  if(p.equipped.shoes){
+    ctx.fillStyle='#FF6B35';
+    ctx.beginPath(); ctx.ellipse(-6+ls,25,7,3.5,-.25,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#FFFFFF';
+    ctx.beginPath(); ctx.ellipse(-6+ls,24,5,2,-.25,0,Math.PI); ctx.fill();
+    ctx.fillStyle='#FF6B35';
+    ctx.beginPath(); ctx.ellipse(6-ls,25,7,3.5,.25,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#FFFFFF';
+    ctx.beginPath(); ctx.ellipse(6-ls,24,5,2,.25,0,Math.PI); ctx.fill();
+  }
+
   // Arms — gloves reaction: raise hands and wiggle
   const gloveRaise = (rct.type==='gloves'&&rt>0) ? -20-Math.sin(rt*15)*6 : 0;
   const as=Math.sin(p.bob+Math.PI)*8;
   ctx.strokeStyle=p.equipped.suit?'#ECEFF1':(p.equipped.jacket?'#795548':'#42A5F5');
   ctx.lineWidth=4; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(-10,-5); ctx.quadraticCurveTo(-16,2,-13+as*.5,10+gloveRaise); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(10,-5);  ctx.quadraticCurveTo(16,2,13-as*.5,10+gloveRaise);   ctx.stroke();
+  if(!p.equipped.umbrella){
+    ctx.beginPath(); ctx.moveTo(10,-5); ctx.quadraticCurveTo(16,2,13-as*.5,10+gloveRaise); ctx.stroke();
+  }
 
   // Gloves on hands
   if(p.equipped.gloves){
     const lhx=-13+as*.5, lhy=10+gloveRaise;
-    const rhx=13-as*.5,  rhy=10+gloveRaise;
     ctx.fillStyle='#1565C0';
     ctx.beginPath(); ctx.ellipse(lhx,lhy,6,5,-.3,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(rhx,rhy,6,5, .3,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle='#42A5F5'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.arc(lhx,lhy+2,5,.1,Math.PI-.1); ctx.stroke();
-    ctx.beginPath(); ctx.arc(rhx,rhy+2,5,.1,Math.PI-.1); ctx.stroke();
+    if(!p.equipped.umbrella){
+      const rhx=13-as*.5, rhy=10+gloveRaise;
+      ctx.fillStyle='#1565C0';
+      ctx.beginPath(); ctx.ellipse(rhx,rhy,6,5,.3,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#42A5F5'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(rhx,rhy+2,5,.1,Math.PI-.1); ctx.stroke();
+    }
   }
 
-  // Head — beanie wobble
+  // Head — beanie wobble + apple bob
   const headTilt = (rct.type==='beanie'&&rt>0) ? Math.sin(rt*18)*0.18 : 0;
+  const headBobFwd = (rct.type==='apple'&&rt>0) ? Math.sin(rt*25)*6 : 0;
   ctx.save();
+  ctx.translate(0, headBobFwd);
   ctx.rotate(headTilt);
   ctx.fillStyle=p.equipped.suit?'#ECEFF1':'#FFCCBC';
   ctx.beginPath(); ctx.arc(0,-18,14,0,Math.PI*2); ctx.fill();
@@ -995,8 +1184,10 @@ function drawCharacter(ctx,p){
   // Face (drawn relative to head rotation)
   if(!p.equipped.mask){
     const freshHit = p.hitFlash>0.18;
-    const disgusted = rct.type==='medicine_bad' && rt>0.42;
     const goggleBlink = rct.type==='goggles' && rt>0.45;
+    const berriesJoy = rct.type==='berries' && rt>0.6;
+    const medicineHappy = rct.type==='medicine_good' && rt>0;
+    const foodHappy = ['apple','banana','orange'].includes(rct.type) && rt>0;
     const exhausted = p.health<.25;
 
     if(freshHit){
@@ -1008,23 +1199,26 @@ function drawCharacter(ctx,p){
       });
       ctx.strokeStyle='#5D4037'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(0,-14,4,0,Math.PI); ctx.stroke(); // O mouth
-    } else if(goggleBlink){
-      // Closed eyes (blink)
+    } else if(goggleBlink || berriesJoy){
+      // Closed eyes + soft smile (goggles blink or berries contentment)
       ctx.strokeStyle='#263238'; ctx.lineWidth=2; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(-7.5,-19); ctx.lineTo(-2.5,-19); ctx.stroke();
       ctx.beginPath(); ctx.moveTo( 2.5,-19); ctx.lineTo( 7.5,-19); ctx.stroke();
       ctx.strokeStyle='#5D4037'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(0,-14,3,.3,Math.PI-.3); ctx.stroke();
-    } else if(disgusted){
-      // Squiggly brows + frown
+    } else if(medicineHappy || foodHappy){
+      // Raised brows + big happy smile
       ctx.strokeStyle='#263238'; ctx.lineWidth=2; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(-8,-23); ctx.bezierCurveTo(-6,-25,-4,-21,-2,-23); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(2,-23);  ctx.bezierCurveTo(4,-25,6,-21,8,-23); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8,-23); ctx.quadraticCurveTo(-5,-27,-2,-23); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2,-23);  ctx.quadraticCurveTo(5,-27,8,-23);   ctx.stroke();
       ctx.fillStyle='#263238';
-      ctx.beginPath(); ctx.ellipse(-5,-19,2.5,2,0,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(5,-19,2.5,2,0,0,Math.PI*2);  ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-5,-19,2.5,2.8,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(5,-19,2.5,2.8,0,0,Math.PI*2);  ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.8)';
+      ctx.beginPath(); ctx.arc(-4,-20,.8,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(6,-20,.8,0,Math.PI*2);  ctx.fill();
       ctx.strokeStyle='#5D4037'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(0,-12,3,Math.PI+.4,-0.4); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,-15,4,.2,Math.PI-.2); ctx.stroke(); // big smile
     } else {
       // Normal eyes
       const eo = exhausted ? 0.4 : 1;
@@ -1090,6 +1284,42 @@ function drawCharacter(ctx,p){
     ctx.shadowBlur=0;
   }
 
+  // Umbrella (right arm raised, proper dome canopy above head)
+  if(p.equipped.umbrella){
+    const armColor=p.equipped.suit?'#ECEFF1':(p.equipped.jacket?'#795548':'#42A5F5');
+    // Right arm raised straight up toward the stick
+    ctx.strokeStyle=armColor; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(10,-5); ctx.quadraticCurveTo(5,-18,1,-32); ctx.stroke();
+    // Stick — vertical up from hand to center of canopy
+    ctx.strokeStyle='#8D6E63'; ctx.lineWidth=2.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(1,-32); ctx.lineTo(0,-52); ctx.stroke();
+    // Hook handle curving right at grip point
+    ctx.beginPath(); ctx.arc(4,-32,3,Math.PI,Math.PI*0.5,true); ctx.stroke();
+    // ── Canopy: dome shape, arch pointing UP, opening facing DOWN ──
+    // ctx.arc with anticlockwise=false (clockwise) from Math.PI to 0
+    // goes: left(-20,-52) → top(0,-72) → right(20,-52) = correct dome
+    ctx.fillStyle='rgba(100,180,255,0.78)';
+    ctx.beginPath();
+    ctx.arc(0,-52,20,Math.PI,0,false); // clockwise → passes through (0,-72) = apex
+    ctx.closePath(); ctx.fill();
+    // Canopy outline
+    ctx.strokeStyle='rgba(70,130,210,0.95)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(0,-52,20,Math.PI,0,false); ctx.stroke();
+    // Ribs: from center(0,-52) to arc edge — all pointing into upper dome
+    // Angles: π, 5π/4, 3π/2, 7π/4, 2π — all in the upper half
+    ctx.strokeStyle='rgba(60,100,200,0.4)'; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const a=Math.PI+i*(Math.PI/4); // π → 5π/4 → 3π/2 → 7π/4 → 2π
+      ctx.beginPath();
+      ctx.moveTo(0,-52);
+      ctx.lineTo(Math.cos(a)*20, -52+Math.sin(a)*20);
+      ctx.stroke();
+    }
+    // Tip at dome apex (0,-72)
+    ctx.fillStyle='rgba(70,130,210,0.95)';
+    ctx.beginPath(); ctx.arc(0,-72,2.5,0,Math.PI*2); ctx.fill();
+  }
+
   // Soup glow
   if(p.soupGlow>0){
     const rg=ctx.createRadialGradient(0,-8,0,0,-8,30);
@@ -1107,16 +1337,18 @@ function drawCharacter(ctx,p){
 // ── HUD ───────────────────────────────────────────────────────────────────────
 const HUD = (()=>{
   let hbW=0, bannerAlpha=0, bannerText='', bannerT=0;
-  const eqX={jacket:-80,mask:-80,suit:-80};
+  const allEqItems=['jacket','mask','suit','backpack','beanie','gloves','goggles','shoes','umbrella'];
+  const eqX=Object.fromEntries(allEqItems.map(k=>[k,-80]));
 
   function banner(name){ bannerText=`Entering ${name}`; bannerAlpha=1; bannerT=2.5; }
 
   function update(dt,p){
     hbW+=(p.health*160-hbW)*Math.min(1,dt*8);
     if(bannerT>0){ bannerT-=dt; bannerAlpha=clamp(bannerT/.5,0,1); if(bannerT<=0)bannerAlpha=0; }
-    const slots={jacket:0,mask:1,suit:2};
-    for(const [item,i] of Object.entries(slots)){
-      const target=p.equipped[item]?i*36:-80;
+    if(p.lastFoodTimer>0) p.lastFoodTimer=Math.max(0,p.lastFoodTimer-dt);
+    for(let i=0;i<allEqItems.length;i++){
+      const item=allEqItems[i];
+      const target=p.equipped[item]?i*28:-80;
       eqX[item]+=(target-eqX[item])*Math.min(1,dt*10);
     }
   }
@@ -1155,18 +1387,26 @@ const HUD = (()=>{
       ctx.fillText(bannerText,(CW-bw)/2,CH-100);
       ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
-    // Equipped items
-    for(const [item,i] of Object.entries({jacket:0,mask:1,suit:2})){
+    // Equipped items — all 9 slots centered at bottom
+    const slotW=28, rowW=allEqItems.length*slotW;
+    const rowLeft=CW/2-rowW/2+slotW/2;
+    for(let i=0;i<allEqItems.length;i++){
+      const item=allEqItems[i];
       if(!p.equipped[item]) continue;
-      const bx=CW/2-40+eqX[item];
+      const bx=rowLeft+eqX[item];
       ctx.fillStyle='rgba(0,0,0,.42)';
       roundRect(ctx,bx-14,CH-50,28,28,6); ctx.fill();
       ctx.save(); ctx.translate(bx,CH-36); ctx.scale(.72,.72);
-      Collectibles.draw; // use drawItem directly
-      const ic={jacket:'#795548',mask:'#4CAF50',suit:'#00E5FF'};
-      ctx.fillStyle=ic[item]; ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.fill();
-      if(item==='suit'){ ctx.strokeStyle='#00E5FF'; ctx.lineWidth=1.5; ctx.shadowBlur=8; ctx.shadowColor='#00E5FF'; ctx.beginPath(); ctx.arc(0,0,11,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0; }
+      Collectibles.drawItem(ctx,item);
       ctx.restore();
+    }
+    // Food flash icon
+    if(p.lastFoodTimer>0&&p.lastFoodType){
+      const fa=Math.min(1,p.lastFoodTimer*2);
+      ctx.globalAlpha=fa;
+      ctx.save(); ctx.translate(CW/2,CH-80); ctx.scale(.9,.9);
+      Collectibles.drawItem(ctx,p.lastFoodType);
+      ctx.restore(); ctx.globalAlpha=1;
     }
     ctx.restore();
   }
@@ -1294,9 +1534,10 @@ const G = {
   pAccum:0,
   pRates:[7,22,6,10,14],
   player:{x:CW/2,y:CH*.7,vx:0,health:1,
-    equipped:{jacket:false,mask:false,suit:false,backpack:false,beanie:false,gloves:false,goggles:false},
+    equipped:{jacket:false,mask:false,suit:false,backpack:false,beanie:false,gloves:false,goggles:false,shoes:false,umbrella:false},
     bob:0,hitFlash:0,soupGlow:0,frozen:false,
-    backpackTimer:0, reaction:{type:'',t:0}, shakeT:0},
+    backpackTimer:0, reaction:{type:'',t:0}, shakeT:0,
+    lastFoodTimer:0, lastFoodType:''},
 };
 
 // ── GAME LOOP ─────────────────────────────────────────────────────────────────
@@ -1419,11 +1660,6 @@ function update(dt){
   if(G.player.equipped.beanie&&G.wi===1) drain*=0.72;
   G.player.health=Math.max(0,G.player.health-drain*dt);
   // In space: accelerating void drain makes death inevitable
-  if(G.wi===4){
-    const depth=Math.max(0,G.alt-12000); // 0 at start of Space, grows past 15000
-    G.player.health=Math.max(0,G.player.health-(depth*0.000032)*dt);
-  }
-
   // Particles
   G.pAccum+=dt;
   const piv=1/G.pRates[G.wi];
@@ -1479,13 +1715,22 @@ function startPlaying(){
   Audio.startWorld(0);
 }
 
+let _lastLoopTs=0;
 function loop(ts){
   if(!G.running) return;
+  _lastLoopTs=ts;
   G.dt=Math.min((ts-G.last)/1000,.05);
   G.last=ts; G.frame++;
-  update(G.dt); draw();
+  try{ update(G.dt); draw(); } catch(e){ console.error('loop error:',e); }
   requestAnimationFrame(loop);
 }
+// Watchdog: if loop stops for >200ms (uncaught exception killed RAF), restart it
+setInterval(()=>{
+  if(G.running && G.state!=='menu' && performance.now()-_lastLoopTs>200){
+    G.last=performance.now(); _lastLoopTs=G.last;
+    requestAnimationFrame(loop);
+  }
+},200);
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 function initGame(){
@@ -1518,9 +1763,10 @@ function restartGame(){
   G.alt=0; G.wi=0; G.prevWi=0; G.blend=0; G.pAccum=0;
   G.state='playing';
   G.player={x:CW/2,y:CH*.7,vx:0,health:1,
-    equipped:{jacket:false,mask:false,suit:false,backpack:false,beanie:false,gloves:false,goggles:false},
+    equipped:{jacket:false,mask:false,suit:false,backpack:false,beanie:false,gloves:false,goggles:false,shoes:false,umbrella:false},
     bob:0,hitFlash:0,soupGlow:0,frozen:false,
-    backpackTimer:0,reaction:{type:'',t:0},shakeT:0};
+    backpackTimer:0,reaction:{type:'',t:0},shakeT:0,
+    lastFoodTimer:0,lastFoodType:''};
   Weather.reset();
   document.getElementById('ctrlBtns').classList.add('visible');
   Audio.startWorld(0);
